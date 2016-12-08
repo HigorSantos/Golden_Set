@@ -14,7 +14,6 @@ import partida.*;
 
 public class Contagem { 
 	//[FIXME] IMPLEMENTAR ESTATÍSTICAS PARA GUARDAR OS VALORES DE CADA GAME
-	//[FIXME] IMPLEMENTAR QUEM DEVE SACAR
 	//[FIXME] IMPLEMENTAR TIEBREAK
 	
 	public boolean AcabouPartida = false;
@@ -24,8 +23,13 @@ public class Contagem {
 	private int[] _pontosTotais	= {0,0};
 	private int[] _games 		= {0,0};
 	private int[][] _set;
-	private int _tipoJogo = 3;
+	private int _tipoJogo = 3;				//Indica se o jogo terá 3 ou 5 sets
+	private int _tipoGame = 6;				//Indica a quantidade de games de um set
 	private int _setAtual = 0;
+	private Jogadores _j1;
+	private Jogadores _j2;
+	private Jogadores _sacando;
+	private boolean _jogandoTiebreak = false;
 	
 	
 	/**
@@ -34,8 +38,12 @@ public class Contagem {
 	 * @param Jogadores j2, Jogador 2.
 	 * @param int tipoJogo, tipo de jogo que será jogado; 3 ou 5 sets.
 	 */
-	public Contagem(Jogadores j1, Jogadores j2, int tipoJogo) {
+	public Contagem(Jogadores j1, Jogadores j2, Jogadores comecaSacando, int tipoJogo) {
 
+		this._j1 = j1;
+		this._j2 = j2;
+		this._sacando = comecaSacando;
+		
 		if(tipoJogo != 3){
 			this._tipoJogo = 5;	//O jogo só aceita 3 ou 5 sets.
 		}
@@ -53,13 +61,26 @@ public class Contagem {
 	 *  */
 	public void pontua(Jogadores jogador){
 		
+		/* Faz a troca do jogador que está sacando,
+		 * se estiver em tiebreak
+		 */
+		if (_jogandoTiebreak){
+			if (_pontos[jogador.jogador] % 2 == 0){
+				trocaJogador(jogador);
+			}
+		}
+		
+		/* Soma os pontos do game atual e os pontos totais da partida. */
 		_pontos[jogador.jogador] += 1;
 		_pontosTotais[jogador.jogador] += 1;
+		
 		/* Verifica se acabou */
 		int campeao = acabouGame();
 		
 		if(campeao != Jogadores.NINGUEM){
 			pontuaGame(jogador);
+			
+			trocaJogador(jogador);
 			
 			limpaPontosGameAtual();
 		}
@@ -99,6 +120,18 @@ public class Contagem {
 	}
 	
 	/**
+	 * Troca quem está sacando.
+	 * @param Jogadores sacando. Quem estava sacando.
+	 * */
+	private void trocaJogador(Jogadores sacando){
+		if (sacando == _j1){
+			_sacando = _j2;
+		}else{
+			_sacando = _j1;
+		}
+	}
+	
+	/**
 	 * SEÇÃO PARA MÉTODOS DE VERIFICAÇÃO
 	 * */
 	
@@ -108,27 +141,35 @@ public class Contagem {
 	 * */
 	private int acabouGame(){
 		
+		/* Indica a diferença de games para sair vitorioso */
+		int pontos_min_vitoria = 4;
+		
+		if (_jogandoTiebreak){
+			pontos_min_vitoria = 7;
+		}
+		
 		int pontos_j1 = _pontos[Jogadores.JOGADOR1];
 		int pontos_j2 = _pontos[Jogadores.JOGADOR2];
 				
-        if ((pontos_j1 == 4 && pontos_j2 < 4) || 
-                (pontos_j1>4 && pontos_j1-pontos_j2==2) ){
+        if (pontos_j1 >= pontos_min_vitoria 
+        		&& (pontos_j1-pontos_j2) == 2 ){
         	
                return Jogadores.JOGADOR1;
-           }
-           else if ((pontos_j2 == 4 && pontos_j1 < 4) ||
-                    (pontos_j2 > 4 && pontos_j2 - pontos_j1 == 2)){
+               
+        } else if (pontos_j2 >= pontos_min_vitoria
+                    && (pontos_j2 - pontos_j1) == 2){
 
                return Jogadores.JOGADOR2;
-           }
-           else {
+               
+        } else {
         	   
                return Jogadores.NINGUEM;
-           }
+        }
 	}//FIM: acabou
+
 	
 	/**
-	 * Verifica se um Set acabou.
+	 * Verifica se um Set acabou. Também transforma o jogo em modo tiebreak.
 	 * @return int Qual Jogador venceu o set
 	 * */
 	private int acabouSet(){
@@ -136,12 +177,24 @@ public class Contagem {
 		int games_j1 = _games[Jogadores.JOGADOR1];
 		int games_j2 = _games[Jogadores.JOGADOR2];
 		
-		if (games_j1 >= 6 && games_j1-games_j1 == 2){
+		/* Indica a diferença de games para sair vitorioso */
+		int diferenca_games = 2;
+		
+		if (_jogandoTiebreak){
+			diferenca_games = 1;
+		}
+		
+		if (games_j1 >= 6 && (games_j1 - games_j1) == diferenca_games){
 			
 			return Jogadores.JOGADOR1;
-		}else if (games_j2 >= 6 && games_j2- games_j1 == 2){
+		}else if (games_j2 >= 6 && (games_j2 - games_j1) == diferenca_games){
 			
 			return Jogadores.JOGADOR2;
+		}else if (games_j1==games_j2 && games_j1==_tipoGame){
+			
+			// Entra em modo tiebreak
+			_jogandoTiebreak = true;
+			return Jogadores.NINGUEM;
 		}else{
 			
 			return Jogadores.NINGUEM;
@@ -200,6 +253,8 @@ public class Contagem {
 	 * Limpa a pontuação de games.
 	 * */
 	private void limpaPontosGamesJogador(){
+		_jogandoTiebreak = false;
+		
 		_games[Jogadores.JOGADOR1] = 0;
 		_games[Jogadores.JOGADOR2] = 0;
 	}
@@ -231,4 +286,12 @@ public class Contagem {
 			return _tipoJogo - 2;
 		}
 	}
+	
+	/**
+	 * Retorna quem deve sacar.
+	 * */
+	public Jogadores quemSaca(){
+		return _sacando;
+	}
+	
 }
