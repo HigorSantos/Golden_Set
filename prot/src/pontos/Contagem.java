@@ -9,12 +9,17 @@
  */
 package pontos;
 
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 import partida.*;
 
 
 public class Contagem { 
 	//[FIXME] IMPLEMENTAR ESTATÍSTICAS PARA GUARDAR OS VALORES DE CADA GAME
-	//[FIXME] IMPLEMENTAR TIEBREAK
+
+	private static final Logger logger = LogManager.getLogger(Contagem.class);
 	
 	public boolean AcabouPartida = false;
 	public int Vencedor = Jogadores.NINGUEM;
@@ -61,6 +66,8 @@ public class Contagem {
 	 *  */
 	public void pontua(Jogadores jogador){
 		
+		//logger.trace("pontuou\t" + jogador.nome + "\t" + contagemTenis(jogador) );
+		
 		/* Faz a troca do jogador que está sacando,
 		 * se estiver em tiebreak
 		 */
@@ -76,9 +83,10 @@ public class Contagem {
 		
 		/* Verifica se acabou */
 		int campeao = acabouGame();
-		
+
 		if(campeao != Jogadores.NINGUEM){
-			pontuaGame(jogador);
+
+			pontuaSet(jogador);
 			
 			trocaJogador(jogador);
 			
@@ -90,18 +98,18 @@ public class Contagem {
 	 * Conta ponto de game para jogador indicado.
 	 * @param jogador Qual jogador está pontuando.
 	 * */
-	private void pontuaGame(Jogadores jogador){
-		_games[jogador.jogador] += 1;
-		
-		/* Verifica se o game terminou */
-		int campeaoGame = acabouSet();
-		
-		if (campeaoGame != Jogadores.NINGUEM){
-			pontuaSet(jogador);
-			
-			limpaPontosGamesJogador();
-		}
-	}
+	//private void pontuaGame(Jogadores jogador){
+	//	_games[jogador.jogador] += 1;
+	//	
+	//	 Verifica se o game terminou 
+	//	int campeaoGame = acabouSet();
+	//	
+	//	if (campeaoGame != Jogadores.NINGUEM){
+	//		pontuaSet(jogador);
+	//		
+	//		limpaPontosGamesJogador();
+	//	}
+	//}
 
 	/**
 	 * Incrementa contador de sets para o jogador indicado.
@@ -109,13 +117,18 @@ public class Contagem {
 	 * */
 	private void pontuaSet(Jogadores jogador){
 		_set[jogador.jogador][_setAtual] += 1;
-		_setAtual += 1;
 	
-		int campeao = acabouPartida();
+		int campeao = acabouSet();
 		
 		if (campeao != Jogadores.NINGUEM){
-			AcabouPartida = true;
-			Vencedor = campeao;
+			_setAtual += 1;
+			logger.trace("SET ATUAL\t" + _setAtual);
+			int campeaoPartida = acabouPartida();
+			
+			if (campeaoPartida != Jogadores.NINGUEM){
+				AcabouPartida = true;
+				Vencedor = campeao;
+			}
 		}
 	}
 	
@@ -150,14 +163,14 @@ public class Contagem {
 		
 		int pontos_j1 = _pontos[Jogadores.JOGADOR1];
 		int pontos_j2 = _pontos[Jogadores.JOGADOR2];
-				
+		
         if (pontos_j1 >= pontos_min_vitoria 
-        		&& (pontos_j1-pontos_j2) == 2 ){
+        		&& (pontos_j1  -pontos_j2) >= 2 ){
         	
                return Jogadores.JOGADOR1;
                
         } else if (pontos_j2 >= pontos_min_vitoria
-                    && (pontos_j2 - pontos_j1) == 2){
+                    && (pontos_j2 - pontos_j1) >= 2){
 
                return Jogadores.JOGADOR2;
                
@@ -174,8 +187,10 @@ public class Contagem {
 	 * */
 	private int acabouSet(){
 		
-		int games_j1 = _games[Jogadores.JOGADOR1];
-		int games_j2 = _games[Jogadores.JOGADOR2];
+		int games_j1 = _set[Jogadores.JOGADOR1][_setAtual];
+		int games_j2 = _set[Jogadores.JOGADOR2][_setAtual];
+		
+		//logger.trace("games_j1: " + games_j1 + "\tgames_j2:" + games_j2);
 		
 		/* Indica a diferença de games para sair vitorioso */
 		int diferenca_games = 2;
@@ -184,10 +199,10 @@ public class Contagem {
 			diferenca_games = 1;
 		}
 		
-		if (games_j1 >= 6 && (games_j1 - games_j1) == diferenca_games){
-			
+		if (games_j1 >= 6 && (games_j1 - games_j2) >= diferenca_games){
+
 			return Jogadores.JOGADOR1;
-		}else if (games_j2 >= 6 && (games_j2 - games_j1) == diferenca_games){
+		}else if (games_j2 >= 6 && (games_j2 - games_j1) >= diferenca_games){
 			
 			return Jogadores.JOGADOR2;
 		}else if (games_j1==games_j2 && games_j1==_tipoGame){
@@ -203,7 +218,7 @@ public class Contagem {
 	
 	/**
 	 * Verifica se uma partida acabou.
-	 * @return int Qual Jogador venceu a partida.
+	 * @return Qual Jogador venceu a partida.
 	 * */
 	private int acabouPartida(){
 
@@ -212,8 +227,8 @@ public class Contagem {
 		
 		/* Verifica se já fora jogado o último set */
 		for (int i=0; i < _tipoJogo; i++){
-			int pontosJ1 = _set[i][Jogadores.JOGADOR1];
-			int pontosJ2 = _set[i][Jogadores.JOGADOR2];
+			int pontosJ1 = _set[Jogadores.JOGADOR1][i];
+			int pontosJ2 = _set[Jogadores.JOGADOR2][i];
 			
 			if (pontosJ1 > pontosJ2){
 				
@@ -235,6 +250,17 @@ public class Contagem {
 		}
 			
 	}//FIM: acabouPartida
+	
+	/**
+	 * Define qual é o outro jogador.
+	 * */
+	private Jogadores adversario(Jogadores jogador){
+		if (jogador == _j1){
+			return _j2;
+		}else{
+			return _j1;
+		}
+	}
 	
 	/**
 	 * SEÇÃO PARA MÉTODOS DE DADOS
@@ -269,6 +295,15 @@ public class Contagem {
 	}
 	
 	/**
+	 * Retorno os pontos do game atual.
+	 * @param jogador Qual jogador.
+	 * @retun Total de pontos do game.
+	 * */
+	public int pontosAtuais(Jogadores jogador){
+		return _pontos[jogador.jogador];
+	}
+	
+	/**
 	 * Retorna qual set está sendo jogado.
 	 * */
 	public int getSetAtual(){
@@ -292,6 +327,66 @@ public class Contagem {
 	 * */
 	public Jogadores quemSaca(){
 		return _sacando;
+	}
+
+	/**
+	* Retorna os set de um jogador.
+	* @param jogador De qual jogador deve ser retornado.
+	* @return Array com os sets.
+	*/
+	public int[] setsJogador(Jogadores jogador){
+		int[] sets = new int[_tipoJogo];
+
+		for (int i = 0; i < _tipoJogo; i++){
+
+			sets[i] = _set[jogador.jogador][i];
+		}
+
+		return sets;
+	}
+
+	/**
+	 * Retorna a pontuação na notação do Tenis.
+	 * @param jogador Pontos de qual jogador.
+	 * @return String 0, 15, 30, 40, VA (vantagem a favor) e VC (vantagem contra).
+	 * */
+	public String contagemTenis(Jogadores jogador){
+		
+		int pontosRequeridos = pontosAtuais(jogador);
+		int pontosAdversario = pontosAtuais(adversario(jogador));
+		
+		if (pontosRequeridos < 4 && _jogandoTiebreak == false){
+			
+			switch (pontosRequeridos){
+			
+			case 1:
+				return "15";
+			case 2:
+				return "30";
+			case 3:
+				return "40";
+			default:
+				return "0";
+			}
+		}else if(_jogandoTiebreak){
+			
+			return Integer.toString(pontosRequeridos);
+			
+		}else if (pontosRequeridos==pontosAdversario){
+			
+			return "40";
+		}else{
+			if (pontosRequeridos % 2 == 0 && jogador == _sacando){
+				return "VA";
+			}else if(pontosRequeridos < pontosAdversario ){
+				
+				return "40";
+			}else{
+				return "VC";
+			}
+		}
+		
+		
 	}
 	
 }
