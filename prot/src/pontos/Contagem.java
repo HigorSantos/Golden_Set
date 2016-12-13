@@ -122,7 +122,9 @@ public class Contagem {
 		
 		if (campeao != Jogadores.NINGUEM){
 			_setAtual += 1;
+
 			logger.trace("SET ATUAL\t" + _setAtual);
+
 			int campeaoPartida = acabouPartida();
 			
 			if (campeaoPartida != Jogadores.NINGUEM){
@@ -199,6 +201,7 @@ public class Contagem {
 			diferenca_games = 1;
 		}
 		
+
 		if (games_j1 >= 6 && (games_j1 - games_j2) >= diferenca_games){
 
 			return Jogadores.JOGADOR1;
@@ -378,6 +381,7 @@ public class Contagem {
 		}else{
 			if (pontosRequeridos % 2 == 0 && jogador == _sacando){
 				return "VA";
+
 			}else if(pontosRequeridos < pontosAdversario ){
 				
 				return "40";
